@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TRIP UA</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        :root {
+            --bg: #101010;
+            --bg-card: #1a1a1a;
+            --bg-card-hover: #222222;
+            --text: #e8e8e8;
+            --text-dim: #888888;
+            --text-muted: #555555;
+            --border: #1f1f1f;
+            --card-radius: 14px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .snow-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; overflow: hidden; }
+        .snowflake { position: absolute; top: -10px; background: rgba(255,255,255,0.8); border-radius: 50%; pointer-events: none; animation: fall linear infinite; }
+        @keyframes fall {
+            0% { transform: translateY(-10px) translateX(0); opacity: 1; }
+            25% { transform: translateY(25vh) translateX(15px); }
+            50% { transform: translateY(50vh) translateX(-10px); opacity: 0.8; }
+            75% { transform: translateY(75vh) translateX(20px); }
+            100% { transform: translateY(105vh) translateX(-5px); opacity: 0; }
+        }
+
+        .header { position: sticky; top: 0; z-index: 100; background: rgba(16,16,16,0.92); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); padding: 16px 20px; border-bottom: 1px solid var(--border); }
+        .header-inner { display: flex; align-items: center; justify-content: center; position: relative; }
+        .back-btn { position: absolute; left: 0; display: flex; align-items: center; gap: 4px; background: none; border: none; color: var(--text-dim); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; padding: 4px 0; }
+        .back-btn svg { width: 20px; height: 20px; fill: var(--text-dim); }
+        .back-btn:active { opacity: 0.6; }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-mark { width: 36px; height: 36px; border-radius: 10px; background: #fff; display: flex; align-items: center; justify-content: center; }
+        .logo-mark svg { width: 20px; height: 20px; fill: #101010; }
+        .logo-text { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; color: #fff; }
+        .logo-text span { font-weight: 400; color: var(--text-dim); }
+
+        .hero { padding: 48px 24px 32px; text-align: center; }
+        .hero-badge { display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 100px; font-size: 12px; color: var(--text-dim); letter-spacing: 0.5px; margin-bottom: 20px; }
+        .hero h1 { font-size: 32px; font-weight: 900; line-height: 1.15; letter-spacing: -0.5px; color: #fff; margin-bottom: 10px; }
+        .hero p { font-size: 15px; color: var(--text-muted); line-height: 1.5; max-width: 300px; margin: 0 auto; }
+
+        .section-header { display: flex; align-items: center; justify-content: space-between; padding: 28px 20px 16px; }
+        .section-title { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); }
+        .item-count { font-size: 12px; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 20px; }
+
+        .card-list { padding: 0 16px 120px; display: flex; flex-direction: column; gap: 8px; }
+        .card { display: flex; align-items: center; gap: 14px; padding: 14px; background: var(--bg-card); border-radius: var(--card-radius); border: 1px solid var(--border); cursor: pointer; transition: background 0.15s ease, transform 0.15s ease; text-decoration: none; color: inherit; -webkit-user-select: none; user-select: none; opacity: 0; transform: translateY(16px); }
+        .card.visible { opacity: 1; transform: translateY(0); transition: opacity 0.4s ease, transform 0.4s ease, background 0.15s ease; }
+        .card:active { background: var(--bg-card-hover); transform: scale(0.98) translateY(0) !important; }
+        .card-icon { width: 50px; height: 50px; border-radius: 14px; background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+        .card-content { flex: 1; min-width: 0; }
+        .card-name { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+        .card-desc { font-size: 13px; color: var(--text-muted); }
+        .card-arrow { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; transition: background 0.15s ease; }
+        .card:active .card-arrow { background: rgba(255,255,255,0.1); }
+        .card-arrow svg { width: 16px; height: 16px; fill: var(--text-muted); }
+
+        .view { display: none; }
+        .view.active { display: block; }
+
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; padding: 20px; padding-bottom: max(20px, env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--bg) 50%, transparent); pointer-events: none; z-index: 50; }
+        .footer p { font-size: 11px; color: var(--text-muted); letter-spacing: 0.3px; }
+        .glow { position: absolute; top: -100px; left: 50%; transform: translateX(-50%); width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,255,255,0.025) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="snow-container" id="snowContainer"></div>
+    <div class="glow"></div>
+
+    <!-- VIEW: REGIONS -->
+    <div id="viewRegions" class="view active">
+        <div class="header"><div class="header-inner">
+            <div class="logo"><div class="logo-mark"><svg viewBox="0 0 24 24"><path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"/></svg></div><div class="logo-text">TRIP <span>UA</span></div></div>
+        </div></div>
+        <div class="hero">
+            <div class="hero-badge">❄️ Зима 2026</div>
+            <h1>Обери<br>область</h1>
+            <p>Знайди найкращі магазини<br>у своєму регіоні</p>
+        </div>
+        <div class="section-header">
+            <div class="section-title">Області</div>
+            <div class="item-count" id="regionCount"></div>
+        </div>
+        <div class="card-list" id="regionList"></div>
+    </div>
+
+    <!-- VIEW: CITIES -->
+    <div id="viewCities" class="view">
+        <div class="header"><div class="header-inner">
+            <button class="back-btn" onclick="showRegions()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>Назад</button>
+            <div class="logo"><div class="logo-mark"><svg viewBox="0 0 24 24"><path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"/></svg></div><div class="logo-text">TRIP <span>UA</span></div></div>
+        </div></div>
+        <div class="hero">
+            <div class="hero-badge" id="citiesBadge"></div>
+            <h1>Обери<br>місто</h1>
+            <p>Магазини у містах<br>твоєї області</p>
+        </div>
+        <div class="section-header">
+            <div class="section-title">Міста</div>
+            <div class="item-count" id="cityCount"></div>
+        </div>
+        <div class="card-list" id="cityList"></div>
+    </div>
+
+    <!-- VIEW: SHOPS -->
+    <div id="viewShops" class="view">
+        <div class="header"><div class="header-inner">
+            <button class="back-btn" onclick="showCities(currentRegionId)"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>Назад</button>
+            <div class="logo"><div class="logo-mark"><svg viewBox="0 0 24 24"><path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"/></svg></div><div class="logo-text">TRIP <span>UA</span></div></div>
+        </div></div>
+        <div class="hero">
+            <div class="hero-badge" id="shopsBadge"></div>
+            <h1>Список<br>Магазинів</h1>
+            <p>Перевірені магазини з найкращими<br>товарами та сервісом</p>
+        </div>
+        <div class="section-header">
+            <div class="section-title">Магазини</div>
+            <div class="item-count" id="shopCount"></div>
+        </div>
+        <div class="card-list" id="shopList"></div>
+    </div>
+
+    <div class="footer"><p>TRIP UA · 2026</p></div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#101010'); tg.setBackgroundColor('#101010'); }
+
+        // ===== DEFAULT SHOPS (used for all cities for now) =====
+        const defaultShops = [
+            { name: "Top Shop", emoji: "👑", desc: "Найкраща якість · Швидка доставка", telegram: "https://t.me/topshop_ua" },
+            { name: "Harlem", emoji: "🔥", desc: "Трендові товари · Вигідні ціни", telegram: "https://t.me/harlem_ua" },
+            { name: "Zelenka", emoji: "🌿", desc: "Перевірений продавець · Великий вибір", telegram: "https://t.me/zelenka_ua" }
+        ];
+
+        // ===== DATA =====
+        const data = {
+            regions: [
+                {
+                    id: "zaporizhzhia", name: "Запорізька область", emoji: "🏭",
+                    cities: [
+                        { id: "melitopol", name: "Мелітополь", emoji: "🍒" },
+                        { id: "berdiansk", name: "Бердянськ", emoji: "🌊" },
+                        { id: "zaporizhzhia", name: "Запоріжжя", emoji: "⚡" },
+                        { id: "energodar", name: "Енергодар", emoji: "🔋" }
+                    ]
+                },
+                {
+                    id: "dnipro", name: "Дніпропетровська область", emoji: "🌉",
+                    cities: [
+                        { id: "dnipro", name: "Дніпро", emoji: "🏙️" },
+                        { id: "kriviy_rig", name: "Кривий Ріг", emoji: "⛏️" },
+                        { id: "kamenske", name: "Кам'янське", emoji: "🏗️" },
+                        { id: "nikopol", name: "Нікополь", emoji: "🏛️" },
+                        { id: "pavlograd", name: "Павлоград", emoji: "🚂" }
+                    ]
+                },
+                {
+                    id: "kyiv", name: "Київська область", emoji: "🇺🇦",
+                    cities: [
+                        { id: "kyiv", name: "Київ", emoji: "🏰" },
+                        { id: "boryspil", name: "Бориспіль", emoji: "✈️" },
+                        { id: "bila_tserkva", name: "Біла Церква", emoji: "⛪" },
+                        { id: "brovary", name: "Бровари", emoji: "🌳" },
+                        { id: "irpin", name: "Ірпінь", emoji: "🌲" }
+                    ]
+                },
+                {
+                    id: "odesa", name: "Одеська область", emoji: "⚓",
+                    cities: [
+                        { id: "odesa", name: "Одеса", emoji: "🎭" },
+                        { id: "izmail", name: "Ізмаїл", emoji: "🚢" },
+                        { id: "chornomorsk", name: "Чорноморськ", emoji: "🌅" },
+                        { id: "yuzhne", name: "Южне", emoji: "🏖️" }
+                    ]
+                },
+                {
+                    id: "kharkiv", name: "Харківська область", emoji: "🎓",
+                    cities: [
+                        { id: "kharkiv", name: "Харків", emoji: "🏫" },
+                        { id: "lozova", name: "Лозова", emoji: "🚉" },
+                        { id: "chuguiv", name: "Чугуїв", emoji: "🛩️" },
+                        { id: "izium", name: "Ізюм", emoji: "🍇" }
+                    ]
+                },
+                {
+                    id: "lviv", name: "Львівська область", emoji: "🦁",
+                    cities: [
+                        { id: "lviv", name: "Львів", emoji: "☕" },
+                        { id: "drohobych", name: "Дрогобич", emoji: "🏭" },
+                        { id: "striy", name: "Стрий", emoji: "🌄" },
+                        { id: "chervonohrad", name: "Червоноград", emoji: "🔴" },
+                        { id: "truskavets", name: "Трускавець", emoji: "💧" }
+                    ]
+                },
+                {
+                    id: "poltava", name: "Полтавська область", emoji: "🌻",
+                    cities: [
+                        { id: "poltava", name: "Полтава", emoji: "🏺" },
+                        { id: "kremenchuk", name: "Кременчук", emoji: "🏗️" },
+                        { id: "horishni_plavni", name: "Горішні Плавні", emoji: "🌊" },
+                        { id: "lubny", name: "Лубни", emoji: "🌿" }
+                    ]
+                },
+                {
+                    id: "vinnytsia", name: "Вінницька область", emoji: "⛲",
+                    cities: [
+                        { id: "vinnytsia", name: "Вінниця", emoji: "🎆" },
+                        { id: "zhmerynka", name: "Жмеринка", emoji: "🚂" },
+                        { id: "mohyliv", name: "Могилів-Подільський", emoji: "🏞️" }
+                    ]
+                },
+                {
+                    id: "mykolaiv", name: "Миколаївська область", emoji: "🚢",
+                    cities: [
+                        { id: "mykolaiv", name: "Миколаїв", emoji: "⚓" },
+                        { id: "pervomaysk", name: "Первомайськ", emoji: "🌾" },
+                        { id: "voznesensk", name: "Вознесенськ", emoji: "🌊" }
+                    ]
+                },
+                {
+                    id: "cherkasy", name: "Черкаська область", emoji: "🌳",
+                    cities: [
+                        { id: "cherkasy", name: "Черкаси", emoji: "🏞️" },
+                        { id: "uman", name: "Умань", emoji: "🌹" },
+                        { id: "smila", name: "Сміла", emoji: "🚂" }
+                    ]
+                },
+                {
+                    id: "zhytomyr", name: "Житомирська область", emoji: "🌲",
+                    cities: [
+                        { id: "zhytomyr", name: "Житомир", emoji: "🏰" },
+                        { id: "berdychiv", name: "Бердичів", emoji: "⛪" },
+                        { id: "korosten", name: "Коростень", emoji: "🥔" }
+                    ]
+                },
+                {
+                    id: "rivne", name: "Рівненська область", emoji: "💎",
+                    cities: [
+                        { id: "rivne", name: "Рівне", emoji: "🏙️" },
+                        { id: "dubno", name: "Дубно", emoji: "🏰" },
+                        { id: "varash", name: "Вараш", emoji: "⚡" }
+                    ]
+                },
+                {
+                    id: "volyn", name: "Волинська область", emoji: "🦌",
+                    cities: [
+                        { id: "lutsk", name: "Луцьк", emoji: "🏰" },
+                        { id: "kovel", name: "Ковель", emoji: "🚂" },
+                        { id: "novovolynsk", name: "Нововолинськ", emoji: "⛏️" }
+                    ]
+                },
+                {
+                    id: "ternopil", name: "Тернопільська область", emoji: "🏞️",
+                    cities: [
+                        { id: "ternopil", name: "Тернопіль", emoji: "🌊" },
+                        { id: "chortkiv", name: "Чортків", emoji: "🏛️" },
+                        { id: "kremenets", name: "Кременець", emoji: "⛰️" }
+                    ]
+                },
+                {
+                    id: "ivano_frankivsk", name: "Івано-Франківська область", emoji: "🏔️",
+                    cities: [
+                        { id: "ivano_frankivsk", name: "Івано-Франківськ", emoji: "🎿" },
+                        { id: "kalush", name: "Калуш", emoji: "🏭" },
+                        { id: "kolomyia", name: "Коломия", emoji: "🎨" },
+                        { id: "yaremche", name: "Яремче", emoji: "🌲" }
+                    ]
+                },
+                {
+                    id: "zakarpattia", name: "Закарпатська область", emoji: "🍷",
+                    cities: [
+                        { id: "uzhhorod", name: "Ужгород", emoji: "🏰" },
+                        { id: "mukachevo", name: "Мукачево", emoji: "🏯" },
+                        { id: "khust", name: "Хуст", emoji: "🌄" },
+                        { id: "rakhiv", name: "Рахів", emoji: "⛰️" }
+                    ]
+                },
+                {
+                    id: "chernivtsi", name: "Чернівецька область", emoji: "🎓",
+                    cities: [
+                        { id: "chernivtsi", name: "Чернівці", emoji: "🏛️" },
+                        { id: "novodnistrovsky", name: "Новодністровськ", emoji: "🌊" }
+                    ]
+                },
+                {
+                    id: "khmelnytsky", name: "Хмельницька область", emoji: "🏰",
+                    cities: [
+                        { id: "khmelnytsky", name: "Хмельницький", emoji: "🏙️" },
+                        { id: "kamianets", name: "Кам'янець-Подільський", emoji: "🏰" },
+                        { id: "shepetivka", name: "Шепетівка", emoji: "🚂" }
+                    ]
+                },
+                {
+                    id: "chernihiv", name: "Чернігівська область", emoji: "🌿",
+                    cities: [
+                        { id: "chernihiv", name: "Чернігів", emoji: "⛪" },
+                        { id: "nizhyn", name: "Ніжин", emoji: "🥒" },
+                        { id: "pryluky", name: "Прилуки", emoji: "🌾" }
+                    ]
+                },
+                {
+                    id: "sumy", name: "Сумська область", emoji: "🍬",
+                    cities: [
+                        { id: "sumy", name: "Суми", emoji: "🏙️" },
+                        { id: "konotop", name: "Конотоп", emoji: "🚂" },
+                        { id: "shostka", name: "Шостка", emoji: "🎬" }
+                    ]
+                },
+                {
+                    id: "kirovohrad", name: "Кіровоградська область", emoji: "🌾",
+                    cities: [
+                        { id: "kropyvnytskyi", name: "Кропивницький", emoji: "🎭" },
+                        { id: "oleksandria", name: "Олександрія", emoji: "⛏️" },
+                        { id: "svitlovodsk", name: "Світловодськ", emoji: "💡" }
+                    ]
+                },
+                {
+                    id: "kherson", name: "Херсонська область", emoji: "🍉",
+                    cities: [
+                        { id: "kherson", name: "Херсон", emoji: "🌊" },
+                        { id: "nova_kakhovka", name: "Нова Каховка", emoji: "🌊" },
+                        { id: "kakhovka", name: "Каховка", emoji: "🏞️" }
+                    ]
+                }
+            ]
+        };
+
+        // Add computed desc & shops to each region/city
+        data.regions.forEach(r => {
+            r.cities.forEach(c => {
+                c.shops = defaultShops;
+                c.desc = defaultShops.length + ' магазини';
+            });
+            const totalShops = r.cities.reduce((sum, c) => sum + c.shops.length, 0);
+            r.desc = r.cities.length + ' міст · ' + totalShops + ' магазинів';
+        });
+
+        let currentRegionId = null;
+        const arrowSvg = `<svg viewBox="0 0 24 24"><path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.41 1.41l4.59-4.59a1 1 0 0 0 0-1.41L10.7 6.7a1 1 0 0 0-1.41.01z"/></svg>`;
+
+        function switchView(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        function animateCards(containerId) {
+            requestAnimationFrame(() => {
+                document.getElementById(containerId).querySelectorAll('.card').forEach((c, i) => {
+                    setTimeout(() => c.classList.add('visible'), i * 50);
+                });
+            });
+        }
+
+        function showRegions() {
+            currentRegionId = null;
+            switchView('viewRegions');
+            if (tg) tg.BackButton.hide();
+        }
+
+        function showCities(regionId) {
+            currentRegionId = regionId;
+            const region = data.regions.find(r => r.id === regionId);
+            if (!region) return;
+
+            document.getElementById('citiesBadge').textContent = '📍 ' + region.name;
+            document.getElementById('cityCount').textContent = region.cities.length + ' міст';
+            document.getElementById('cityList').innerHTML = region.cities.map(city => `
+                <div class="card" onclick="showShops('${regionId}','${city.id}')">
+                    <div class="card-icon">${city.emoji}</div>
+                    <div class="card-content">
+                        <div class="card-name">${city.name}</div>
+                        <div class="card-desc">${city.desc}</div>
+                    </div>
+                    <div class="card-arrow">${arrowSvg}</div>
+                </div>
+            `).join('');
+
+            switchView('viewCities');
+            animateCards('cityList');
+            if (tg) { tg.BackButton.show(); tg.BackButton.onClick(showRegions); }
+        }
+
+        function showShops(regionId, cityId) {
+            currentRegionId = regionId;
+            const region = data.regions.find(r => r.id === regionId);
+            const city = region?.cities.find(c => c.id === cityId);
+            if (!city) return;
+
+            document.getElementById('shopsBadge').textContent = '📍 ' + city.name;
+            document.getElementById('shopCount').textContent = city.shops.length + ' місць';
+            document.getElementById('shopList').innerHTML = city.shops.map(shop => `
+                <a href="${shop.telegram}" target="_blank" rel="noopener" class="card">
+                    <div class="card-icon">${shop.emoji}</div>
+                    <div class="card-content">
+                        <div class="card-name">${shop.name}</div>
+                        <div class="card-desc">${shop.desc}</div>
+                    </div>
+                    <div class="card-arrow">${arrowSvg}</div>
+                </a>
+            `).join('');
+
+            switchView('viewShops');
+            animateCards('shopList');
+            if (tg) { tg.BackButton.show(); tg.BackButton.onClick(() => showCities(regionId)); }
+        }
+
+        function renderRegions() {
+            document.getElementById('regionCount').textContent = data.regions.length + ' обл.';
+            document.getElementById('regionList').innerHTML = data.regions.map(r => `
+                <div class="card" onclick="showCities('${r.id}')">
+                    <div class="card-icon">${r.emoji}</div>
+                    <div class="card-content">
+                        <div class="card-name">${r.name}</div>
+                        <div class="card-desc">${r.desc}</div>
+                    </div>
+                    <div class="card-arrow">${arrowSvg}</div>
+                </div>
+            `).join('');
+            animateCards('regionList');
+        }
+
+        function createSnow() {
+            const c = document.getElementById('snowContainer');
+            for (let i = 0; i < 45; i++) {
+                const f = document.createElement('div');
+                f.classList.add('snowflake');
+                const s = Math.random() * 3 + 1;
+                f.style.width = s+'px'; f.style.height = s+'px';
+                f.style.left = Math.random()*100+'%';
+                f.style.animationDuration = (Math.random()*8+6)+'s';
+                f.style.animationDelay = (Math.random()*12)+'s';
+                f.style.opacity = Math.random()*0.4+0.15;
+                c.appendChild(f);
+            }
+        }
+
+        createSnow();
+        renderRegions();
+    </script>
+</body>
+</html>
